@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" type="text/css" href="common.css" />
+<style type="text/css">
+input[type="number"]{
+    width:6em;
+    height:2em;
+}
+</style>
+<script type="text/javascript">
+var I=document.getElementById.bind(document);
+function update(){
+    var xhr=new XMLHttpRequest();
+    xhr.onload=function(){
+        var s=xhr.responseText.split(",");
+        for(var i=0;i<s.length;i++){
+            try{
+                var v=s[i].split(":");
+                if(v.length!=2) continue;
+                var name=v[0].trim().toLowerCase(), value=v[1].trim().toLowerCase();
+                switch(name){
+                    case "power": {I("power").value=value;} break;
+                    case "mode": {
+                        if(value.indexOf("cool")!=-1) I("mode").value="cool";
+                        if(value.indexOf("heat")!=-1) I("mode").value="heat";
+                        if(value.indexOf("fan")!=-1) I("mode").value="fan";
+                        if(value.indexOf("dry")!=-1) I("mode").value="dry";
+                    } break;
+                    case "temp": {I("temp").value=value.substr(0,value.length-1);} break;
+                    case "fan": {
+                        var f=Number(value.split(" ")[0]);
+                        if(f>=1&&f<=5) I("fan").value=f;
+                    } break;
+                    case "powerful": {I("powerful").value=value;} break;
+                    case "quiet": {I("quiet").value=value;} break;
+                    case "comfort": {I("comfort").value=value;} break;
+                    case "swing(v)": {I("swing").value=value;} break;
+                    case "on timer": {
+                        if(value=="off") I("onTimerEnabled").checked=false; else{
+                            I("onTimerEnabled").checked=true;
+                            var timer=value.split(":");
+                            I("onTimerH").value=Number(timer[0]);
+                            I("onTimerM").value=Number(timer[1]);
+                        }
+                    } break;
+                    case "off timer": {
+                        if(value=="off") I("offTimerEnabled").checked=false; else{
+                            I("offTimerEnabled").checked=true;
+                            var timer=value.split(":");
+                            I("offTimerH").value=Number(timer[0]);
+                            I("offTimerM").value=Number(timer[1]);
+                        }
+                    } break;
+                    default: break;
+                }
+            }catch(e){}
+        }
+        document.body.style.visibility="visible";
+    };
+    xhr.open("GET","/remote?r="+Math.random());
+    xhr.send();
+}
+function send(){
+    if(parent.st[0]!="m"){alert("You must set the device to manual mode first"); return;}
+    document.body.style.visibility="hidden";
+    try{
+        var lua="blink(100);";
+        lua+=I("power").value=="on"?"turnOn();":"turnOff();";
+        lua+=I("mode").value+"Mode();";
+        lua+="setACTemp("+Number(I("temp").value)+");";
+        lua+="setFanSpeed("+Number(I("fan").value)+");";
+        lua+=I("comfort").value=="on"?"enableComfort();":"disableComfort();";
+        lua+=I("quiet").value=="on"?"enableQuiet();":"disableQuiet();";
+        lua+=I("swing").value=="on"?"enableSwing();":"disableSwing();";
+        if(I("onTimerEnabled").checked) lua+="setOnTimer("+Number(I("onTimerH").value)+","+Number(I("onTimerM").value)+");"; else lua+="disableOnTimer();";
+        if(I("offTimerEnabled").checked) lua+="setOffTimer("+Number(I("offTimerH").value)+","+Number(I("offTimerM").value)+");"; else lua+="disableOffTimer();";
+        lua+=I("powerful").value=="on"?"enablePowerful();":"disablePowerful();";
+        lua+="forceSend();";
+    }catch(e){
+        alert("Invalid data");
+        document.body.style.visibility="visible";
+    }
+    var xhr=new XMLHttpRequest();
+    xhr.onload=function(){
+        if(xhr.responseText.trim()=="1") document.body.style.visibility="visible"; else send();
+    };
+    xhr.onerror=function(){
+        alert("Failed");
+        document.body.style.visibility="visible";
+    }
+    xhr.open("POST","/run?r="+Math.random());
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.send("script="+encodeURIComponent(lua));
+}
+</script>
+</head>
+<body onload="update()" style="visibility:hidden; text-align:center">
+<table style="margin:0 auto">
+    <tr><th>Power</th><td><select id="power"><option value="on">On</option><option value="off" selected="true">Off</option></select></td></tr>
+    <tr><th>Mode</th><td><select id="mode"><option value="cool" selected="true">Cool</option><option value="heat">Heat</option><option value="fan">Fan</option><option value="dry">Dry</option></select></td></tr>
+    <tr><th>Temp (°C)</th><td><input type="number" id="temp" min="18" max="28" step="1" value="18" /></td></tr>
+    <tr><th>Fan</th><td><input type="number" id="fan" min="1" max="5" step="1" value="1"/></td></tr>
+    <tr><th>Powerful</th><td><select id="powerful"><option value="on">On</option><option value="off" selected="true">Off</option></select></td></tr>
+    <tr><th>Comfort</th><td><select id="comfort"><option value="on" selected="true">On</option><option value="off">Off</option></select></td></tr>
+    <tr><th>Quiet</th><td><select id="quiet"><option value="on">On</option><option value="off" selected="true">Off</option></select></td></tr>
+    <tr><th>Swing</th><td><select id="swing"><option value="on">On</option><option value="off" selected="true">Off</option></select></td></tr>
+    <tr><th>On timer<br/>(HH:MM)</th><td>
+        <input type="checkbox" id="onTimerEnabled" /><label for="onTimerEnabled">Enabled</label><br/>
+        <input type="number" id="onTimerH" min="0" max="23" step="1" value="0"/>:<input type="number" id="onTimerM" min="0" max="59" step="1" value="0"/>
+    </td></tr>
+    <tr><th>Off timer<br/>(HH:MM)</th><td>
+        <input type="checkbox" id="offTimerEnabled" /><label for="offTimerEnabled">Enabled</label><br/>
+        <input type="number" id="offTimerH" min="0" max="23" step="1" value="0"/>:<input type="number" id="offTimerM" min="0" max="59" step="1" value="0"/>
+    </td></tr>
+</table>
+<p><button onclick="send()">Send</button></p>
+</body>
+</html>

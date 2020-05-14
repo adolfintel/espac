@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" type="text/css" href="common.css" />
+<style type="text/css">
+#script{
+    width:100%;
+    height:24em;
+    border:1px solid black;
+    margin:none;
+    padding:0.5em;
+    resize:vertical;
+}
+</style>
+<script type="text/javascript">
+var I=document.getElementById.bind(document);
+function getScript(){
+    var xhr=new XMLHttpRequest();
+    xhr.onload=function(){
+        I("script").value=xhr.responseText;
+        document.body.style.visibility="visible";
+    }
+    xhr.open("GET","/getScript?r="+Math.random());
+    xhr.send();
+}
+function setScript(){
+    var s=I("script").value;
+    if(s.length>4000){alert("The script is too long"); return;}
+    if(!/^[\x00-\x7F]*$/.test(s)){alert("Only ASCII characters are allowed"); return;}
+    document.body.style.visibility="hidden";
+    var parts=[];
+    for(var i=0;i<s.length;i+=500){
+        parts.push(s.substr(i,500));
+    }
+    var xhr=new XMLHttpRequest();
+    xhr.onload=function(){
+        var i=0;
+        var nextPart=function(){
+            if(i<parts.length){
+                var xhr2=new XMLHttpRequest();
+                xhr2.onload=nextPart;
+                xhr2.onerror=function(){alert("Failed"); getScript();}
+                xhr2.open("POST","/appendScript?r="+Math.random());
+                xhr2.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr2.send("script="+encodeURIComponent(parts[i++]));
+            }else{
+                var xhr3=new XMLHttpRequest();
+                xhr3.onload=function(){
+                    getScript();
+                    if(parent.st[0]=="m") alert("Script saved, but the device is in manual mode. Switch to auto mode to enable it"); else alert("Script saved");
+                }
+                xhr3.open("GET","commitScript?r="+Math.random());
+                xhr3.send();
+            }
+        };
+        nextPart();
+    }
+    xhr.open("GET","/newScript?r="+Math.random());
+    xhr.send();
+}
+setInterval(function(){
+    I("scriptLen").innerText=I("script").value.length;
+},100);
+</script>
+</head>
+<body onload="getScript()" style="visibility:hidden; text-align:center">
+<p>Put your LUA script here:</p>
+<textarea id="script" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<div><span id="scriptLen">0</span>/4000 characters used</div>
+<p><button onclick="setScript()">Save</button></p>
+<div style="text-align:initial;font-size:0.7em">
+<h2>Quick reference</h2>
+The language is LUA.<br/>
+The maximum length of the script is 4000 characters.<br/>
+The script is executed every ~1 minute.<br/>
+Communication is done over Infrared, line of sight is required, there are no acknowledgments from the AC unit.<br/>
+You can use the following APIs:
+<ul>
+    <li><b>blink(duration)</b>: blink the status LED for the provided time (half duration on, half duration off)</li>
+    <li><b>reset()</b>: reset all settings to their initial values (Off, Cool, 18°C, Fan 1, Quiet off, Comfort on, Powerful off, Timers off)</li>
+    <li><b>forceSend()</b>: force the transmission of the commands to the AC unit even if it's not needed</li>
+    <li><b>getTemperature(), getHumidity(), getPressure(), getApparentTemperature()</b>: information about the environment</li>
+    <li><b>getYear(), getMonth(), getDay(), getHour(), getMinute(), getDayOfWeek()</b>: time and date. Day of week is 1-7, starts on sunday</li>
+    <li><b>turnOn(), turnOff(), isOn()</b>: control the power of the AC unit</li>
+    <li><b>coolMode(), isCoolMode(), heatMode(), isHeatMode(), fanMode(), isFanMode(), dryMode(), isDryMode()</b>: select the mode of the AC unit</li>
+    <li><b>enablePowerful(), disablePowerful(), isPowerful()</b>: control the powerful mode of the AC unit (lasts 20 minutes after enabling)</li>
+    <li><b>enableSwing(), disableSwing(), isSwingEnabled()</b>: control the swinging on the split</li>
+    <li><b>enableQuiet(), disableQuiet(), isQuiet()</b>: control the quiet mode (overrides fan, comfort)</li>
+    <li><b>enableComfort(), disableComfort(), isComfort()</b>: control the comfort mode (overrides fan, quiet)</li>
+    <li><b>setACTemp(t), getACTemp()</b>: control the temperature on the split (not recommended)</li>
+    <li><b>setFanSpeed(speed), getFanSpeed()</b>: control the fan speed (1-5) (overrides quiet, comfort)</li>
+    <li><b>setOnTimer(hh,mm), getOnTimerH(), getOnTimerM(), disableOnTimer()</b>: control the On timer on the split (not recommended)</li>
+    <li><b>setOffTimer(hh,mm), getOffTimerH(), getOffTimerM(), disableOffTimer()</b>: control the Off timer on the split (not recommended)</li>
+</ul>
+All commands are idempotent: calling turnOn() when the AC is already on has no effect. Use this to make shorter scripts.<br/>
+Temperatures are in degrees celsius, time is in 24H format.<br/>
+You can define and use variables that will persist across runs, but they will be lost when the device is turned off or reset.<br/>
+If your script takes more than 5 seconds to run, the device will reset itself and won't run it again until the next reboot. The blink function resets this timer when it's called.<br/>
+If the script doesn't parse correctly, it will not run. Errors can be read via serial (9600,8,1). (Tip: place blink(100) at the beginning of the script while debugging wia WiFi).
+</div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" type="text/css" href="common.css" />
+<script type="text/javascript">
+var I=document.getElementById.bind(document);
+function getCfg(){
+    var xhr=new XMLHttpRequest();
+    xhr.onload=function(){
+        var cfg=xhr.responseText.split("\n");
+        I("wifimode").value=cfg[0];
+        I("ssid").value=cfg[1];
+        I("wifipsk").value=cfg[2];
+        I("hostname").value=cfg[3];
+        document.body.style.visibility="visible";
+    };
+    xhr.open("GET","/net?r="+Math.random());
+    xhr.send();
+}
+function setCfg(){
+    if(!/^[!#;].|[+\[\]/"\t\s].*$/.test(I("ssid").value)){alert("Invalid SSID"); return;}
+    if(!/^[\u0020-\u007e\u00a0-\u00ff]*$/.test(I("wifipsk").value)){alert("Invalid PSK"); return;}
+    if(!/^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]{2,63}|[0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/.test(I("hostname").value)){alert("Invalid Hostname"); return;}
+    document.body.style.visibility="hidden";
+    var xhr=new XMLHttpRequest();
+    xhr.onload=getCfg;
+    xhr.open("GET","/setNet?wmode="+encodeURIComponent(I("wifimode").value)+"&ssid="+encodeURIComponent(I("ssid").value)+"&psk="+encodeURIComponent(I("wifipsk").value)+"&host="+encodeURIComponent(I("hostname").value)+"&r="+Math.random());
+    xhr.send();
+    alert("The new settings will now be applied");
+}
+</script>
+</head>
+<body onload="getCfg()" style="visibility:hidden; text-align:center;">
+<table style="margin:0 auto;">
+<tr><th>WiFi Mode</th><td><select id="wifimode"><option value="c">Client</option><option value="a">Access point</option></select></td></tr>
+<tr><th>SSID</th><td><input type="text" id="ssid" value="" /></td></tr>
+<tr><th>PSK</th><td><input type="text" id="wifipsk" value="" /></td></tr>
+<tr><th>Hostname</th><td><input type="text" id="hostname" value="" /></td></tr>
+</table>
+<p><button onclick="setCfg()">Apply</button></p>
+</body>
+</html>

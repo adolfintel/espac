@@ -1,0 +1,2 @@
+#define SPIFFS_CACHE 0 
+#define SPIFFS_GC_STATS 0

@@ -1,0 +1,22 @@
+*{
+    box-sizing:border-box
+}
+body{
+    background:#FFFFFF;
+    color:#000000;
+    font-family:sans-serif;
+}
+button{
+    display:inline-block;
+    background:#DDDDDD;
+    padding:0.4em;
+    border:0.15em solid transparent;
+    cursor:pointer;
+    font-size:1em;
+}
+button:hover, button:focus{
+    border-color:#808080;
+}
+button:active{
+    border-color:#404040;
+}

@@ -1,0 +1,124 @@
+<!DOCYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" type="text/css" href="common.css" />
+<title>ARC433 WiFi Remote</title>
+<style type="text/css">
+html{
+    background:#4060AA;
+    min-height:100vh;
+    padding:1em;
+} 
+body{
+    margin:1em auto;
+    width:100%;
+    max-width:60em;
+    padding:2em 1em;
+    border-radius:1em;
+    box-shadow:0 1em 2em 2em #00000040;
+}
+#menu{
+    text-align:center;
+    margin:1.5em 0;
+}
+iframe{
+    width:100%;
+    margin:0; padding:0;
+    border:none;
+}
+#status{
+    text-align:center;
+    margin:0.5em 0;
+}
+#status > *{
+    text-align:center;
+    display:inline-block;
+    margin:0 0.4em;
+}
+#status .value{
+    font-size:2em;
+}
+#status .label{
+    font-size:0.9em;
+}
+#mode{
+    font-size:1em !important;
+}
+</style>
+<script type="text/javascript">
+var I=document.getElementById.bind(document);
+var currentPage="welcome.html";
+function loadFrame(url){
+    if(currentPage!=url){I("page").src=url; currentPage=url;}
+}
+var st=null;
+function loadStatus(){
+    var xhr=new XMLHttpRequest();
+    xhr.onload=function(){
+        st=xhr.responseText.split("\n");
+        I("mode").value=st[0];
+        I("temperature").innerText=""+Number(st[1]).toFixed(2);
+        I("humidity").innerText=""+Number(st[2]).toFixed(2);
+        I("pressure").innerText=""+Number(st[3]).toFixed(2);
+        I("apparentTemperature").innerText=""+Number(st[4]).toFixed(2);
+    };
+    xhr.open("GET","/status?r="+Math.random());
+    xhr.send();
+}
+function changeMode(){
+    var xhr=new XMLHttpRequest();
+    xhr.onload=loadStatus;
+    xhr.open("GET",(I("mode").value=="a"?"/auto":"/manual")+"?r="+Math.random());
+    xhr.send();
+}
+function resizeFrame(){
+    I("page").style.height=(100+I("page").contentDocument.body.clientHeight)+"px";
+}
+function syncClock(){
+    var t=new Date();
+    var year=t.getFullYear()-2000, month=t.getMonth()+1, day=t.getDate(), hour=t.getHours(), minute=t.getMinutes(), second=t.getSeconds(), dow=t.getDay()+1;
+    var xhr=new XMLHttpRequest();
+    xhr.open("GET","/setRTC?year="+year+"&month="+month+"&day="+day+"&hh="+hour+"&mm="+minute+"&ss="+second+"&dow="+dow+"&r="+Math.random());
+    xhr.send();
+}
+function init(){
+    loadStatus();
+    setInterval(loadStatus,10000);
+    syncClock();
+}
+</script>
+</head>
+<body onload="init()">
+<div id="nojs" style="font-size:3em">Please enable javascript and reload the page<script type="text/javascript">document.body.removeChild(I("nojs"));</script></div>
+<h1>ARC433 WiFi Remote</h1>
+<div id="status">
+<div>
+    <div id="apparentTemperature" class="value">--.--</div>
+    <div class="label">Apparent Temperature<br/>(°C)</div>
+</div>
+<div>
+    <div id="temperature" class="value">--.--</div>
+    <div class="label">Temperature<br/>(°C)</div>
+</div>
+<div>
+    <div id="humidity" class="value">--.--</div>
+    <div class="label">Humidity<br/>(%)</div>
+</div>
+<div>
+    <div id="pressure" class="value">--.--</div>
+    <div class="label">Pressure<br/>(hPa)</div>
+</div>
+<div>
+    <select id="mode" class="value" onchange="changeMode()"><option value="a">Auto</option><option value="m">Manual</option></select>
+    <div class="label">Mode<br/><br/></div>
+</div>
+</div>
+<div id="menu">
+<button onclick="loadFrame('auto.html')">Auto mode</button>
+<button onclick="loadFrame('manual.html')">Manual mode</button>
+<button onclick="loadFrame('net.html')">Network configuration</button>
+</div>
+<iframe id="page" name="page" src="welcome.html" onload="resizeFrame()"></iframe>
+</body>
+</html>
